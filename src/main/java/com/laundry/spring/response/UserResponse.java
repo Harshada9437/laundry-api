@@ -1,40 +1,38 @@
-package com.laundry.spring.DTO;
+package com.laundry.spring.response;
 
-import org.springframework.stereotype.Component;
+import com.laundry.spring.response.util.GenericResponse;
 
-@Component
-public class UserDto {
+public class UserResponse implements GenericResponse {
     private String name;
     private String contactNo;
-    private String sessionId;
     private String status;
     private String username;
     private String password;
     private int complexId;
+    private String compName;
     private int id;
-    private int typeId;
     private int wingId;
+    private String wing;
+    private String createdDate;
     private String flatNo;
     private String email;
-    private String createdDate;
-    private String compName;
-    private String type;
-    private String wing;
+    private String message;
+    private String messageType;
 
-    public String getSessionId() {
-        return sessionId;
+    public String getCompName() {
+        return compName;
     }
 
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
+    public void setCompName(String compName) {
+        this.compName = compName;
     }
 
-    public int getTypeId() {
-        return typeId;
+    public String getWing() {
+        return wing;
     }
 
-    public void setTypeId(int typeId) {
-        this.typeId = typeId;
+    public void setWing(String wing) {
+        this.wing = wing;
     }
 
     public String getCreatedDate() {
@@ -45,28 +43,22 @@ public class UserDto {
         this.createdDate = createdDate;
     }
 
-    public String getCompName() {
-        return compName;
+    public String getMessage() {
+        return message;
     }
 
-    public void setCompName(String compName) {
-        this.compName = compName;
+    @Override
+    public void setMessage(String message) {
+        this.message = message;
     }
 
-    public String getType() {
-        return type;
+    public String getMessageType() {
+        return messageType;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getWing() {
-        return wing;
-    }
-
-    public void setWing(String wing) {
-        this.wing = wing;
+    @Override
+    public void setMessageType(String messageType) {
+        this.messageType = messageType;
     }
 
     public int getComplexId() {

@@ -1,40 +1,105 @@
 package com.laundry.spring.model;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.DateSerializer;
+import com.laundry.spring.response.util.GenericResponse;
 
-import java.io.Serializable;
-import java.util.Date;
-
-public class User implements Serializable {
-
-    private static final long serialVersionUID = -7788619177798333712L;
-
-    private int id;
+public class User {
     private String name;
-    private String mobile;
-    private Date createdDate;
+    private String contactNo;
+    private String status;
+    private String username;
+    private String password;
+    private int complexId;
+    private int id;
+    private int wingId;
+    private String flatNo;
+    private String email;
+    private String token;
 
-    public int getId() {
-        return id;
+    public int getComplexId() {
+        return complexId;
     }
-    public void setId(int id) {
-        this.id = id;
+
+    public void setComplexId(int complexId) {
+        this.complexId = complexId;
     }
+
+    public int getWingId() {
+        return wingId;
+    }
+
+    public void setWingId(int wingId) {
+        this.wingId = wingId;
+    }
+
+    public String getFlatNo() {
+        return flatNo;
+    }
+
+    public void setFlatNo(String flatNo) {
+        this.flatNo = flatNo;
+    }
+
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
 
-    @JsonSerialize(using=DateSerializer.class)
-    public Date getCreatedDate() {
-        return createdDate;
-    }
-    public void setCreatedDate(Date createdDate) {
-        this.createdDate = createdDate;
+    public String getContactNo() {
+        return contactNo;
     }
 
+    public void setContactNo(String contactNo) {
+        this.contactNo = contactNo;
+    }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 }

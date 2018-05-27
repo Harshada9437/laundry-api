@@ -1,72 +1,24 @@
-package com.laundry.spring.DTO;
+package com.laundry.spring.bo;
 
-import org.springframework.stereotype.Component;
-
-@Component
-public class UserDto {
+public class UserBO {
     private String name;
     private String contactNo;
-    private String sessionId;
     private String status;
     private String username;
     private String password;
     private int complexId;
     private int id;
-    private int typeId;
     private int wingId;
     private String flatNo;
+    private String token;
     private String email;
-    private String createdDate;
-    private String compName;
-    private String type;
-    private String wing;
 
-    public String getSessionId() {
-        return sessionId;
+    public String getToken() {
+        return token;
     }
 
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public int getTypeId() {
-        return typeId;
-    }
-
-    public void setTypeId(int typeId) {
-        this.typeId = typeId;
-    }
-
-    public String getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(String createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public String getCompName() {
-        return compName;
-    }
-
-    public void setCompName(String compName) {
-        this.compName = compName;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getWing() {
-        return wing;
-    }
-
-    public void setWing(String wing) {
-        this.wing = wing;
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public int getComplexId() {

@@ -1,10 +1,9 @@
 package com.laundry.spring.dao;
 
-import com.laundry.spring.CommaSeparatedString;
-import com.laundry.spring.ConnectionHandler;
+import com.laundry.spring.util.CommaSeparatedString;
 import com.laundry.spring.DTO.ClotheDTO;
 import com.laundry.spring.DTO.RequestDto;
-import com.laundry.spring.DateUtil;
+import com.laundry.spring.util.DateUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

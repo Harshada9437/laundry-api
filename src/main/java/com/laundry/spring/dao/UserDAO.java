@@ -1,254 +1,46 @@
 package com.laundry.spring.dao;
 
-import com.laundry.spring.*;
-import com.laundry.spring.DTO.*;
+
+import com.laundry.spring.DTO.CustomerDTO;
+import com.laundry.spring.DTO.UserDto;
+import com.laundry.spring.DTO.VerifyOtpDTO;
+import com.laundry.spring.model.ChangePasswordBO;
+import com.laundry.spring.model.LoginRequest;
+import com.laundry.spring.model.LoginResponse;
+import com.laundry.spring.model.ResetPasswordRequestBO;
+import com.laundry.spring.util.DateUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class UserDAO {
-    public Boolean createUser(UserDto userDto, int outletId) throws SQLException {
-    boolean isCreated = false;
-    PreparedStatement preparedStatement = null;
-    Connection connection = null;
-        try
 
-    {
-        int parameterIndex = 1;
-        connection = new ConnectionHandler().getConnection();
-        connection.setAutoCommit(false);
-        preparedStatement = connection
-                .prepareStatement("INSERT  INTO user_registration (name,contact_no, email , add_id, username, password) VALUES(?,?,?,?,?,?,?) ");
+    @Autowired
+    private ConnectionHandler connectionHandler;
 
-        preparedStatement.setString(parameterIndex++, userDto.getName());
-
-        preparedStatement.setString(parameterIndex++, userDto.getContactNo());
-
-        preparedStatement.setString(parameterIndex++, userDto.getEmail());
-
-        int addId = getAddressId(userDto.getComplexId(),userDto.getWingId(),userDto.getFlatNo(),connection);
-        preparedStatement.setInt(parameterIndex++, addId);
-
-        preparedStatement.setString(parameterIndex++, userDto.getUsername());
-
-        preparedStatement.setString(parameterIndex++, userDto.getPassword());
-
-        int i = preparedStatement.executeUpdate();
-        if (i > 0) {
-            connection.commit();
-            isCreated = Boolean.TRUE;
-        } else {
-            connection.rollback();
-        }
-    } catch(
-    SQLException sqlException)
-
-    {
-        sqlException.printStackTrace();
-        throw sqlException;
-    } finally
-
-    {
-        try {
-            connection.close();
-            preparedStatement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-        return isCreated;
-}
-
-    private int getAddressId(int complexId, int wingId, int flatNo,Connection connection) throws SQLException {
-        int id=0;
-        PreparedStatement statement = null;
-        try {
-
-            StringBuffer query = new StringBuffer("select id from address where comp_id =? and wing_id=? and flat_no=?");
-            statement = connection.prepareStatement(query.toString());
-            statement.setInt(1,complexId);
-            statement.setInt(2,wingId);
-            statement.setInt(3,flatNo);
-
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                id=resultSet.getInt("id");
-            }
-        } catch (SQLException sqlException) {
-            sqlException.printStackTrace();
-            throw sqlException;
-        } finally {
-            try {
-                statement.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return id;
-    }
-
-    public CustomerDTO getCustomer(String customerId) throws SQLException {
-        Connection connection = null;
-        PreparedStatement statement = null;
-        CustomerDTO customerDTO = new CustomerDTO();
-        try {
-            connection = new ConnectionHandler().getConnection();
-            connection.setAutoCommit(false);
-
-            StringBuilder query = new StringBuilder("select u.id,u.name,u.contact_no,u.email,u.status,u.created_date,c.comp_name,a.flat_no,t.label,w.label as wing from user_registration u\n" +
-                    "\tjoin user_type t on t.id=u.type_id\n" +
-                    "\tjoin address a on a.id=u.add_id\n" +
-                    "\tjoin complex_details c on c.id=a.comp_id\n" +
-                    "\tjoin wings w on w.id=a.wing_id\n" +
-                    "\twhere u.id=?");
-            statement = connection.prepareStatement(query.toString());
-            statement.setString(1, customerId);
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                customerDTO.setId(resultSet.getInt("id"));
-                customerDTO.setType(resultSet.getString("label"));
-                customerDTO.setWing(resultSet.getString("wing"));
-                customerDTO.setName(resultSet.getString("name"));
-                customerDTO.setContact_no(resultSet.getString("contact_no"));
-                customerDTO.setFlat_no(resultSet.getString("flat_no"));
-                customerDTO.setEmail(resultSet.getString("email"));
-                customerDTO.setStatus(resultSet.getString("status"));
-                customerDTO.setCreated_date(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
-                customerDTO.setComp_name(resultSet.getString("comp_name"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw e;
-        } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return customerDTO;
-    }
-
-    public static String getToken(VerifyOtpDTO verifyOtpDTO) throws SQLException {
-        Connection connection = null;
-        PreparedStatement statement = null;
-        String token = "";
-        try {
-            connection = new ConnectionHandler().getConnection();
-            connection.setAutoCommit(false);
-
-            StringBuilder query = new StringBuilder("select token from user_otp where mobile=? and otp=?;");
-
-            int parameterIndex=1;
-            statement = connection.prepareStatement(query.toString());
-            statement.setString(parameterIndex++,verifyOtpDTO.getMobile());
-            statement.setString(parameterIndex++,verifyOtpDTO.getOtp());
-
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                token = resultSet.getString("token");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw e;
-        } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return token;
-    }
-
-    public List<CustomerDTO> getAllUserList(int typeId) throws SQLException {
-        Connection connection = null;
-        PreparedStatement statement = null;
-        List<CustomerDTO> typeRequest = new ArrayList<CustomerDTO>();
-        try {
-            connection = new ConnectionHandler().getConnection();
-
-            StringBuilder query = new StringBuilder("select u.id,u.name,u.contact_no,u.email,u.status,u.created_date,c.comp_name,a.flat_no,t.label,w.label as wing from user_registration u \n"+
-                    "\tjoin user_type t on t.id=u.type_id \n"+
-                    "\tjoin address a on a.id=u.add_id \n"+
-                    "\tjoin complex_details c on c.id=a.comp_id \n"+
-                    "\tjoin wings w on w.id=a.wing_id \n"+
-                    "\twhere u.type_id=2)");
-
-            statement = connection.prepareStatement(query.toString());
-            statement.setInt(1,typeId);
-            ResultSet resultSet = statement.executeQuery();
-
-            while (resultSet.next()) {
-                CustomerDTO customerDTO = new CustomerDTO();
-                customerDTO.setId(resultSet.getInt("id"));
-                customerDTO.setType(resultSet.getString("label"));
-                customerDTO.setWing(resultSet.getString("wing"));
-                customerDTO.setName(resultSet.getString("name"));
-                customerDTO.setContact_no(resultSet.getString("contact_no"));
-                customerDTO.setFlat_no(resultSet.getString("flat_no"));
-                customerDTO.setEmail(resultSet.getString("email"));
-                customerDTO.setStatus(resultSet.getString("status"));
-                customerDTO.setCreated_date(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
-                customerDTO.setComp_name(resultSet.getString("comp_name"));
-                typeRequest.add(customerDTO);
-            }
-        } catch (SQLException sqlException) {
-            sqlException.printStackTrace();
-            throw sqlException;
-        } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return typeRequest;
-    }
-
-
-    public int insertOtp(OtpDTO otpDTO) throws SQLException {
+    public void removeSessionId(String userName, String encodedPassword) throws SQLException {
         PreparedStatement preparedStatement = null;
         Connection connection = null;
-        StringBuilder query = new StringBuilder("insert into user_otp ('mobile','otp','token') values (?,?,?)");
-        int id = 0;
         try {
-            int parameterIndex = 1;
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
             connection.setAutoCommit(false);
-            preparedStatement = connection.prepareStatement(query.toString());
-            preparedStatement.setString(parameterIndex++,otpDTO.getMobile());
-            preparedStatement.setString(parameterIndex++, otpDTO.getOtp());
-            preparedStatement.setString(parameterIndex++, otpDTO.getToken());
+            preparedStatement = connection
+                    .prepareStatement("UPDATE user_registration SET session_id ='' WHERE user_name =? and password=?");
 
+            preparedStatement.setString(1,userName);
+            preparedStatement.setString(2,encodedPassword);
             int i = preparedStatement.executeUpdate();
             if (i > 0) {
                 connection.commit();
             } else {
                 connection.rollback();
             }
-            try {
-                ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    id = generatedKeys.getInt(1);
-                    connection.commit();
-                }
-            } catch (SQLException e) {
-                connection.rollback();
-                e.printStackTrace();
-                throw e;
-            }
         } catch (SQLException sqlException) {
-            connection.rollback();
             sqlException.printStackTrace();
             throw sqlException;
         } finally {
@@ -259,15 +51,14 @@ public class UserDAO {
                 e.printStackTrace();
             }
         }
-        return id;
     }
 
-    public static Boolean getValidationForEmail(String email) throws SQLException {
+    public Boolean getValidationForEmail(String email) throws SQLException {
         Connection connection = null;
         PreparedStatement statement = null;
         Boolean isProcessed = Boolean.FALSE;
         try {
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             StringBuilder query = new StringBuilder(
                     "SELECT email FROM user_registration where email = ?");
@@ -295,15 +86,13 @@ public class UserDAO {
         return isProcessed;
     }
 
-
-
-    public static Boolean getValidationForPhoneNumber(String mobile) throws SQLException {
+    public Boolean getValidationForPhoneNumber(String mobile) throws SQLException {
         Connection connection = null;
         PreparedStatement statement = null;
         Boolean isProcessed = Boolean.FALSE;
         try {
 
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             StringBuilder query = new StringBuilder("SELECT contact_no FROM user_registration where contact_no = ?");
 
@@ -331,28 +120,35 @@ public class UserDAO {
     }
 
 
-    public List<String> getFlats(int complexId,int wingId) throws SQLException {
+    public Boolean changePassword(ChangePasswordBO changePwdBO) throws SQLException {
+        Boolean isProcessed = Boolean.FALSE;
         Connection connection = null;
         PreparedStatement statement = null;
-        List<String> flats = new ArrayList<String>();
         try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
 
-            connection = new ConnectionHandler().getConnection();
-
-            String query = "select flat_no from address where comp_id=? and wing_id=?";
-
+            String query = "SELECT password FROM user_registration WHERE id=?";
             statement = connection.prepareStatement(query);
-
-            statement.setInt(1,complexId);
-            statement.setInt(2,wingId);
-
+            statement.setInt(1,changePwdBO.getId());
             ResultSet resultSet = statement.executeQuery();
-
+            String oldDBpassword = null;
             while (resultSet.next()) {
-                flats.add(resultSet.getString("flat_no"));
+                oldDBpassword = resultSet.getString("password");
             }
+
+            if (oldDBpassword != null && changePwdBO.getOldPassword() != null
+                    && oldDBpassword.equals(changePwdBO.getOldPassword())) {
+                if (updatePassword(changePwdBO.getNewPassword(),
+                        changePwdBO.getId(), connection)) {
+                    connection.commit();
+                    isProcessed = Boolean.TRUE;
+                }
+            }
+
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
+            throw sqlException;
         } finally {
             try {
                 statement.close();
@@ -361,30 +157,84 @@ public class UserDAO {
                 e.printStackTrace();
             }
         }
-        return flats;
+        return isProcessed;
     }
 
-    public Boolean matchToken(String mobile,String token) throws SQLException {
+    private boolean updatePassword(String newPassword, int userId, Connection connection) throws SQLException {
+        boolean isUpdated = false;
+        connection.setAutoCommit(false);
+        String query = "UPDATE user_registration SET password=? WHERE id=?";
+        PreparedStatement preparedStatement = connection
+                .prepareStatement(query);
+        preparedStatement.setString(1,newPassword);
+        preparedStatement.setInt(2,userId);
+        int i = preparedStatement.executeUpdate();
+        if (i > 0) {
+            connection.commit();
+            isUpdated = Boolean.TRUE;
+        } else {
+            connection.rollback();
+        }
+        return isUpdated;
+
+    }
+
+    public Boolean resetPassword(ResetPasswordRequestBO resetPwdBO) throws SQLException {
+        Boolean isProcessed = Boolean.FALSE;
         Connection connection = null;
         PreparedStatement statement = null;
-        Boolean isvalid=Boolean.FALSE;
         try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            statement = connection.prepareStatement("UPDATE user_registration SET password=?  WHERE id=?");
 
-            connection = new ConnectionHandler().getConnection();
+            statement.setString(parameterIndex++, resetPwdBO.getNewPassword());
 
-            String query = "select id from user_otp where mobile=? and token=?";
+            statement.setInt(parameterIndex++, resetPwdBO.getId());
+
+            int i = statement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isProcessed = Boolean.TRUE;
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return isProcessed;
+    }
+
+    public int getCustomerId(String mobile) throws SQLException{
+        Connection connection = null;
+        PreparedStatement statement = null;
+        int id=0;
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select id from user_registration where  contact_no=?");
 
             int parameterIndex=1;
-            statement = connection.prepareStatement(query);
+            statement = connection.prepareStatement(query.toString());
             statement.setString(parameterIndex++,mobile);
-            statement.setString(parameterIndex++,token);
-            ResultSet resultSet = statement.executeQuery();
 
+            ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                isvalid = Boolean.TRUE;
+                id=resultSet.getInt("id");
             }
-        } catch (SQLException sqlException) {
-            sqlException.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
         } finally {
             try {
                 statement.close();
@@ -393,32 +243,75 @@ public class UserDAO {
                 e.printStackTrace();
             }
         }
-        return isvalid;
+        return id;
     }
 
-    public List<ClotheDTO> getWings(int id) throws SQLException {
+    public String verifyOtp(VerifyOtpDTO verifyOtpDTO) throws SQLException {
+        Connection connection = null;
+        Statement statement = null;
+        String where = "", token = "";
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            statement=connection.createStatement();
+
+            if (!verifyOtpDTO.getOtp().equals("0")) {
+                where = " and otp=" + verifyOtpDTO.getOtp();
+            }
+
+            StringBuilder query = new StringBuilder("SELECT isExpired,otp,token FROM user_otp where mobile =\"").append(verifyOtpDTO.getMobile()).append("\"").append(where);
+            ResultSet resultSet = statement.executeQuery(query.toString());
+            while (resultSet.next()) {
+                if (resultSet.getString("isExpired").equals("NO")) {
+                    token = resultSet.getString("token");
+                    expireOtp(verifyOtpDTO.getOtp(), verifyOtpDTO.getMobile(), connection);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return token;
+    }
+
+    public Boolean setOtp(String id, int otp) {
         Connection connection = null;
         PreparedStatement statement = null;
-        List<ClotheDTO> requestDtos = new ArrayList<ClotheDTO>();
+        Boolean isCreate = Boolean.FALSE;
+
         try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
 
-            connection = new ConnectionHandler().getConnection();
 
-            StringBuilder query = new StringBuilder("select w.id,c.comp_name,w.label from address a\n" +
-                    "\tjoin complex_details c on a.comp_id=c.id\n" +
-                    "\tjoin wings w on w.id=a.wing_id\n" +
-                    "\twhere a.comp_id=?");
+            statement = connection.prepareStatement("INSERT INTO user_otp(mobile,otp,isExpired,token) values(?,?,?,?)");
 
-            statement = connection.prepareStatement(query.toString());
-            statement.setInt(1,id);
-            ResultSet resultSet = statement.executeQuery();
+            statement.setString(parameterIndex++, id);
+            statement.setInt(parameterIndex++, otp);
+            statement.setString(parameterIndex++, "NO");
+            String token = UUID.randomUUID().toString();
+            statement.setString(parameterIndex++, token);
 
-            while (resultSet.next()) {
-                ClotheDTO request = new ClotheDTO();
-                request.setId(resultSet.getInt("id"));
-                request.setName(resultSet.getString("label"));
-                requestDtos.add(request);
+
+            int i = statement.executeUpdate();
+
+            if (i > 0) {
+                connection.commit();
+                isCreate = Boolean.TRUE;
+
+
+            } else {
+                connection.rollback();
             }
+
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         } finally {
@@ -429,7 +322,510 @@ public class UserDAO {
                 e.printStackTrace();
             }
         }
-        return requestDtos;
+        return isCreate;
+    }
+
+    private Boolean expireOtp(String otp, String userId, Connection connection) throws SQLException {
+        String where = "";
+        Boolean isCreate = Boolean.FALSE;
+        try {
+            PreparedStatement preparedStatement = connection
+                    .prepareStatement("UPDATE user_otp SET isExpired=\"" + "YES" + "\" WHERE otp='" + otp + "' and mobile=\""
+                            + userId + "\"" + where);
+
+
+            int i = preparedStatement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isCreate = Boolean.TRUE;
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        }
+        return isCreate;
+    }
+
+    public String getToken(String mobile) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String token = "";
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("SELECT token FROM user_otp where mobile=? and id=(select max(id) from  user_otp where mobile=?)");
+
+            int parameterIndex=1;
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(parameterIndex++,mobile);
+            statement.setString(parameterIndex++,mobile);
+
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                token = resultSet.getString("token");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return token;
+    }
+
+    public String getOtp(String mob) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String token = "";
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("SELECT otp FROM user_otp where mobile=? and isExpired='NO'");
+
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1,mob);
+            ResultSet resultSet = statement.executeQuery();
+
+
+            while (resultSet.next()) {
+                token = resultSet.getString("otp");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return token;
+    }
+
+    public Boolean updateLogInSessionId(int userId, String sessionId)
+            throws SQLException {
+        boolean isUpdated = false;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            StringBuffer query = new StringBuffer(
+                    "UPDATE user_registration SET session_id = '").append(sessionId)
+                    .append("' WHERE id = ").append(userId);
+            preparedStatement = connection.prepareStatement(query.toString());
+
+            int i = preparedStatement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isUpdated = Boolean.TRUE;
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return isUpdated;
+    }
+
+
+    public UserDto getDetail(String name) {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        UserDto loginResponseDTO = new UserDto();
+        try {
+            connection = connectionHandler.getConnection();
+
+            StringBuilder query = new StringBuilder("SELECT * FROM user_registration u where u.username =?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1, name);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                loginResponseDTO.setId(resultSet.getInt("id"));
+                loginResponseDTO.setUsername(resultSet.getString("username"));
+                loginResponseDTO.setPassword(resultSet.getString("password"));
+                loginResponseDTO.setSessionId(resultSet.getString("session_id"));
+                loginResponseDTO.setStatus(resultSet.getString("status"));
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return loginResponseDTO;
+    }
+
+    public Boolean updateSessionId(String sessionId, int userId) {
+        boolean isUpdated = false;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            StringBuffer query = new StringBuffer(
+                    "UPDATE user_registration SET session_id = ? WHERE id = ?");
+            preparedStatement = connection.prepareStatement(query.toString());
+
+            preparedStatement.setString(1, sessionId);
+            preparedStatement.setInt(2, userId);
+
+            int i = preparedStatement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isUpdated = Boolean.TRUE;
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return isUpdated;
+    }
+
+    public int createUser(UserDto userDto) throws SQLException {
+        int id = 0;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            preparedStatement = connection
+                    .prepareStatement("INSERT  INTO user_registration (name,contact_no, email , add_id, username, password) VALUES(?,?,?,?,?,?) ");
+
+            preparedStatement.setString(parameterIndex++, userDto.getName());
+
+            preparedStatement.setString(parameterIndex++, userDto.getContactNo());
+
+            preparedStatement.setString(parameterIndex++, userDto.getEmail());
+
+            int addId = getAddressId(userDto.getComplexId(), userDto.getWingId(), userDto.getFlatNo(), connection);
+            preparedStatement.setInt(parameterIndex++, addId);
+
+            preparedStatement.setString(parameterIndex++, userDto.getUsername());
+
+            preparedStatement.setString(parameterIndex++, userDto.getPassword());
+
+            int i = preparedStatement.executeUpdate();
+
+            try {
+                ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    id = generatedKeys.getInt(1);
+                    connection.commit();
+                } else {
+                    connection.rollback();
+                    throw new SQLException("Creating feedback failed, no ID obtained.");
+                }
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException sqlException)
+        {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return id;
+    }
+
+    public int updateUser(UserDto userDto) throws SQLException {
+        int id = 0;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            preparedStatement = connection
+                    .prepareStatement("UPDATE user_registration SET name=?,contact_no=?, email=? , add_id=?, status=? WHERE  id=?");
+
+            preparedStatement.setString(parameterIndex++, userDto.getName());
+
+            preparedStatement.setString(parameterIndex++, userDto.getContactNo());
+
+            preparedStatement.setString(parameterIndex++, userDto.getEmail());
+
+            int addId = getAddressId(userDto.getComplexId(), userDto.getWingId(), userDto.getFlatNo(), connection);
+            preparedStatement.setInt(parameterIndex++, addId);
+
+            preparedStatement.setString(parameterIndex++, userDto.getStatus());
+
+            preparedStatement.setInt(parameterIndex++, userDto.getId());
+
+            int i = preparedStatement.executeUpdate();
+
+            if (i > 0) {
+                connection.commit();
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return id;
+    }
+
+    private int getAddressId(int complexId, int wingId, String flatNo, Connection connection) throws SQLException {
+        int id = 0;
+        PreparedStatement statement = null;
+        try {
+
+            StringBuffer query = new StringBuffer("select id from address where comp_id =? and wing_id=? and flat_no=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, complexId);
+            statement.setInt(2, wingId);
+            statement.setString(3, flatNo);
+
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                id = resultSet.getInt("id");
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return id;
+    }
+
+    public UserDto userInfo(int customerId) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        UserDto customerDTO = new UserDto();
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select a.wing_id,a.comp_id,u.type_id,u.id,u.name,u.contact_no,u.email,u.status,u.created_date,c.comp_name,a.flat_no,t.label,w.label as wing from user_registration u\n" +
+                    "\tjoin user_type t on t.id=u.type_id\n" +
+                    "\tjoin address a on a.id=u.add_id\n" +
+                    "\tjoin complex_details c on c.id=a.comp_id\n" +
+                    "\tjoin wings w on w.id=a.wing_id\n" +
+                    "\twhere u.id=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, customerId);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                customerDTO.setId(resultSet.getInt("id"));
+                customerDTO.setType(resultSet.getString("label"));
+                customerDTO.setTypeId(resultSet.getInt("type_id"));
+                customerDTO.setWing(resultSet.getString("wing"));
+                customerDTO.setWingId(resultSet.getInt("wing_id"));
+                customerDTO.setName(resultSet.getString("name"));
+                customerDTO.setContactNo(resultSet.getString("contact_no"));
+                customerDTO.setFlatNo(resultSet.getString("flat_no"));
+                customerDTO.setEmail(resultSet.getString("email"));
+                customerDTO.setStatus(resultSet.getString("status"));
+                customerDTO.setCreatedDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
+                customerDTO.setCompName(resultSet.getString("comp_name"));
+                customerDTO.setComplexId(resultSet.getInt("comp_id"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return customerDTO;
+    }
+
+    public Boolean updateSessionId(String sessionIdL, String sessionId, int userId)
+            throws SQLException {
+        boolean isUpdated = false;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            StringBuffer query = new StringBuffer(
+                    "UPDATE user_registration SET session_id=replace(\'" + sessionIdL + "\',\'|" + sessionId
+                            + "|\','') WHERE id = " + userId);
+            preparedStatement = connection.prepareStatement(query.toString());
+
+            int i = preparedStatement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isUpdated = Boolean.TRUE;
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return isUpdated;
+    }
+
+    public String getSessionIdForUserId(int userId) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String sessionId = "";
+        try {
+            connection = connectionHandler.getConnection();
+
+            StringBuilder query = new StringBuilder("SELECT session_id FROM user_registration where id =?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1,userId);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                sessionId = resultSet.getString("session_id");
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return sessionId;
+    }
+
+
+    public List<UserDto> userList(int customerId) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        List<UserDto> users = new ArrayList<UserDto>();
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select a.wing_id,a.comp_id,u.type_id,u.id,u.name,u.contact_no,u.email,u.status,u.created_date,c.comp_name,a.flat_no,t.label,w.label as wing from user_registration u\n" +
+                    "\tjoin user_type t on t.id=u.type_id\n" +
+                    "\tjoin address a on a.id=u.add_id\n" +
+                    "\tjoin complex_details c on c.id=a.comp_id\n" +
+                    "\tjoin wings w on w.id=a.wing_id\n" +
+                    "\twhere u.type_id=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, customerId);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                UserDto customerDTO = new UserDto();
+                customerDTO.setId(resultSet.getInt("id"));
+                customerDTO.setType(resultSet.getString("label"));
+                customerDTO.setTypeId(resultSet.getInt("type_id"));
+                customerDTO.setWing(resultSet.getString("wing"));
+                customerDTO.setWingId(resultSet.getInt("wing_id"));
+                customerDTO.setName(resultSet.getString("name"));
+                customerDTO.setContactNo(resultSet.getString("contact_no"));
+                customerDTO.setFlatNo(resultSet.getString("flat_no"));
+                customerDTO.setEmail(resultSet.getString("email"));
+                customerDTO.setStatus(resultSet.getString("status"));
+                customerDTO.setCreatedDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
+                customerDTO.setCompName(resultSet.getString("comp_name"));
+                customerDTO.setComplexId(resultSet.getInt("comp_id"));
+                users.add(customerDTO);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return users;
+    }
+
+    public String getSessionIdForUser(String userName, String password) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String sessionId = null;
+        try {
+            connection = connectionHandler.getConnection();
+
+            StringBuilder query = new StringBuilder(
+                    "SELECT session_id FROM user_registration where user_name =? and password=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1,userName);
+            statement.setString(2,password);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                sessionId = resultSet.getString(1);
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return sessionId;
     }
 
 }
