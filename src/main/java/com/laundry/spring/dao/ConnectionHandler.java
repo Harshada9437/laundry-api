@@ -28,7 +28,7 @@ public class ConnectionHandler {
         Connection connection = null;
         try {
             Class.forName(driver);
-            connection = DriverManager.getConnection(url, userName, password);
+            connection = DriverManager.getConnection( url,userName,password);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }

@@ -14,4 +14,10 @@ public class RestURIConstants {
     public static final String LOG_OUT_USER = "/rest/user/logout";
     public static final String CHANGE_PWD = "/rest/user/changePassword";
     public static final String RESET_PWD = "/rest/user/resetPassword";
+    public static final String LIST_REQUEST_BY_USER = "/rest/user/requestList/{id}";
+    public  static final String CREATE_REQ  = "/rest/laundryRequest/create";
+    public  static final String UPDATE_REQ  = "/rest/laundryRequest/update";
+    public  static final String INFO_REQ  = "/rest/laundryRequest/info/{id}";
+    public  static final String LIST_STATUS_REQ  = "/rest/laundryRequest/listByStatus/{id}";
+    public  static final String LIST_REQ  = "/rest/laundryRequest/list/{service_id}";
 }

@@ -5,6 +5,7 @@ import com.laundry.spring.bo.UserBO;
 import com.laundry.spring.dao.UserDAO;
 import com.laundry.spring.model.*;
 import com.laundry.spring.requesthandler.UserRequestHandler;
+import com.laundry.spring.response.LaundryResponseList;
 import com.laundry.spring.response.UserResponseList;
 import com.laundry.spring.response.util.MessageResponse;
 import com.laundry.spring.response.UserResponse;
@@ -218,6 +219,26 @@ public class UserController {
             userResp.setMessage("Something went wrong.");
             userResp.setMessageType("FAILURE");
             return userResp;
+        }
+    }
+
+    @RequestMapping(value = RestURIConstants.LIST_REQUEST_BY_USER, method = RequestMethod.GET)
+    public
+    @ResponseBody
+    LaundryResponseList requestList(@PathVariable("id") int id) {
+        logger.info("Start request list.");
+        LaundryResponseList laundryResponseList = new LaundryResponseList();
+        try {
+
+            laundryResponseList.setRequests(userRequestHandler.requestList(id));
+            laundryResponseList.setMessage("User list.");
+            laundryResponseList.setMessageType("SUCCESS");
+            return laundryResponseList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            laundryResponseList.setMessage("Something went wrong.");
+            laundryResponseList.setMessageType("FAILURE");
+            return laundryResponseList;
         }
     }
 

@@ -1,9 +1,15 @@
 package com.laundry.spring.dao;
 
+import com.laundry.spring.bo.LaundryRequestBO;
+import com.laundry.spring.bo.LaundryUpdateRequestBO;
+import com.laundry.spring.model.ClotheRequest;
+import com.laundry.spring.model.ServiceRequest;
 import com.laundry.spring.util.CommaSeparatedString;
 import com.laundry.spring.DTO.ClotheDTO;
 import com.laundry.spring.DTO.RequestDto;
 import com.laundry.spring.util.DateUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,33 +18,46 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class RequestDAO {
-    public RequestDto getRequest(String id) throws SQLException {
+    
+    @Autowired
+    private ConnectionHandler connectionHandler;
+
+    public List<RequestDto> getRequest(int id) throws SQLException {
         Connection connection = null;
         PreparedStatement statement = null;
-        RequestDto requestDto = new RequestDto();
+        List<RequestDto> request = new ArrayList<RequestDto>();
         try {
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
             connection.setAutoCommit(false);
 
-            StringBuilder query = new StringBuilder("select m.id,u.name,c.name_of_cloth,r.no_of_cloth,s.label,m.created_date,m.updated_date,r.category_id from request_master m\n" +
-                    "\tjoin request_details r on m.id=r.req_id\n" +
-                    "\tjoin clothes c on c.id = r.cloth_id\n" +
+            StringBuilder query = new StringBuilder("select  m.id as reqId, m.*,r.*,u.name,s.label,ct.label as category, c.name_of_cloth from request_master m\n" +
+                    "\tjoin request_details r on m.id=r.request_id\n" +
+                    "\tleft join clothes c on c.id = r.clothe_id\n" +
                     "\tjoin status s on s.id = m.`status`\n" +
+                    "\tjoin category ct on ct.id = r.category_id\n" +
                     "\tjoin user_registration u on u.id=m.user_id\n" +
                     "\twhere m.id=?");
             statement = connection.prepareStatement(query.toString());
-            statement.setString(1, id);
+            statement.setInt(1, id);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                requestDto.setId(resultSet.getInt("id"));
+                RequestDto requestDto= new RequestDto();
+                requestDto.setId(resultSet.getInt("reqId"));
+                requestDto.setUserId(resultSet.getInt("user_id"));
                 requestDto.setClotheName(resultSet.getString("name_of_cloth"));
+                requestDto.setClotheId(resultSet.getInt("clothe_id"));
                 requestDto.setStatus(resultSet.getString("label"));
+                requestDto.setStatusId(resultSet.getInt("status"));
                 requestDto.setCustomerName(resultSet.getString("name"));
-                requestDto.setClotheCount(resultSet.getInt("no_of_cloth"));
+                requestDto.setClotheCount(resultSet.getInt("count"));
                 requestDto.setCreateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
                 requestDto.setUpdateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("updated_date")));
-                requestDto.setCategory(getClotheCategory(resultSet.getString("category_id")));
+                requestDto.setPickupDate(resultSet.getString("pickup_date"));
+                requestDto.setCategory(resultSet.getString("category"));
+                requestDto.setCategoryId(resultSet.getInt("category_id"));
+                request.add(requestDto);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -51,7 +70,7 @@ public class RequestDAO {
                 e.printStackTrace();
             }
         }
-        return requestDto;
+        return request;
     }
 
     public List<String> getClotheCategory(String ids) throws SQLException {
@@ -62,7 +81,7 @@ public class RequestDAO {
 
             List<Integer> id = CommaSeparatedString.split(ids);
 
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             String query = "select label from category where id in ";
 
@@ -104,7 +123,7 @@ public class RequestDAO {
         List<ClotheDTO> requestDtos = new ArrayList<ClotheDTO>();
         try {
 
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             StringBuilder query = new StringBuilder("select * from category");
 
@@ -137,7 +156,7 @@ public class RequestDAO {
         List<ClotheDTO> requestDtos = new ArrayList<ClotheDTO>();
         try {
 
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             StringBuilder query = new StringBuilder("select * from clothes");
 
@@ -170,7 +189,7 @@ public class RequestDAO {
         List<RequestDto> requestDtos = new ArrayList<RequestDto>();
         try {
 
-            connection = new ConnectionHandler().getConnection();
+            connection = connectionHandler.getConnection();
 
             StringBuilder query = new StringBuilder("select r.id,u.name,c.name_of_cloth,r.no_of_cloth,s.label,m.created_date,m.updated_date from request_master m\n" +
                     "\tjoin request_details r on m.id=r.req_id\n" +
@@ -209,4 +228,234 @@ public class RequestDAO {
         return requestDtos;
     }
 
+    public int createRequest(LaundryRequestBO laundryRequestBO) throws SQLException {
+        int id = 0;
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            preparedStatement = connection
+                    .prepareStatement("INSERT  INTO request_master (pickup_date,userId) VALUES(?,?) ");
+
+
+            preparedStatement.setString(parameterIndex++, laundryRequestBO.getPickupDate());
+
+            preparedStatement.setInt(parameterIndex++, laundryRequestBO.getUserId());
+
+            int i = preparedStatement.executeUpdate();
+
+            try {
+                ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    id = generatedKeys.getInt(1);
+
+                    for (ServiceRequest request:laundryRequestBO.getRequests()) {
+                        if(request.getClothes().size()==0) {
+                            createSubRequest(id,request.getService(),null,connection,request.getRemark());
+                        }else{
+                            for (ClotheRequest clotheRequest:request.getClothes()) {
+                                createSubRequest(id,request.getService(),clotheRequest,connection,request.getRemark());
+                            }
+                        }
+                    }
+                    connection.commit();
+                } else {
+                    connection.rollback();
+                    throw new SQLException("Creating feedback failed, no ID obtained.");
+                }
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException sqlException)
+        {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                connection.close();
+                preparedStatement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return id;
+    }
+
+    private void createSubRequest(int id,int service,ClotheRequest request,Connection connection,String remark) {
+        PreparedStatement statement = null;
+
+        try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+
+            statement = connection.prepareStatement("INSERT INTO request_details(request_id,category_id,clothe_id,count,remark) values(?,?,?,?,?)");
+
+            statement.setInt(parameterIndex++, id);
+            statement.setInt(parameterIndex++, service);
+            if(request==null){
+                statement.setInt(parameterIndex++, 0);
+                statement.setInt(parameterIndex++, 0);
+            }else {
+                statement.setInt(parameterIndex++, request.getId());
+                statement.setInt(parameterIndex++, request.getCount());
+            }
+            statement.setString(parameterIndex++, remark);
+
+            int i = statement.executeUpdate();
+
+            if (i > 0) {
+                connection.commit();
+            } else {
+                connection.rollback();
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public Boolean updateRequest(LaundryUpdateRequestBO laundryRequestBO) throws SQLException {
+        Boolean isProcessed = Boolean.FALSE;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            int parameterIndex = 1;
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+            statement = connection.prepareStatement("UPDATE request_master SET status=?  WHERE id=?");
+
+            statement.setInt(parameterIndex++, laundryRequestBO.getStatus());
+
+            statement.setInt(parameterIndex++, laundryRequestBO.getId());
+
+            int i = statement.executeUpdate();
+            if (i > 0) {
+                connection.commit();
+                isProcessed = Boolean.TRUE;
+            } else {
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+            throw sqlException;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return isProcessed;
+    }
+
+    public List<RequestDto> getRequestByStatus(int id) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        List<RequestDto> request = new ArrayList<RequestDto>();
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select  m.id as reqId,m.*,r.*,u.name,s.label,ct.label as category, c.name_of_cloth from request_master m\n" +
+                    "\tjoin request_details r on m.id=r.request_id\n" +
+                    "\tleft join clothes c on c.id = r.clothe_id\n" +
+                    "\tjoin status s on s.id = m.`status`\n" +
+                    "\tjoin category ct on ct.id = r.category_id\n" +
+                    "\tjoin user_registration u on u.id=m.user_id\n" +
+                    "\twhere m.status=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                RequestDto requestDto= new RequestDto();
+                requestDto.setId(resultSet.getInt("reqId"));
+                requestDto.setUserId(resultSet.getInt("user_id"));
+                requestDto.setClotheName(resultSet.getString("name_of_cloth"));
+                requestDto.setClotheId(resultSet.getInt("clothe_id"));
+                requestDto.setStatus(resultSet.getString("label"));
+                requestDto.setStatusId(resultSet.getInt("status"));
+                requestDto.setCustomerName(resultSet.getString("name"));
+                requestDto.setClotheCount(resultSet.getInt("count"));
+                requestDto.setCreateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
+                requestDto.setUpdateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("updated_date")));
+                requestDto.setPickupDate(resultSet.getString("pickup_date"));
+                requestDto.setCategory(resultSet.getString("category"));
+                requestDto.setCategoryId(resultSet.getInt("category_id"));
+                request.add(requestDto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return request;
+    }
+
+    public List<RequestDto> getRequestByService(int id) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        List<RequestDto> request = new ArrayList<RequestDto>();
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select  m.id as reqId,m.*,r.*,u.name,s.label,ct.label as category, c.name_of_cloth from request_master m\n" +
+                    "\tjoin request_details r on m.id=r.request_id\n" +
+                    "\tleft join clothes c on c.id = r.clothe_id\n" +
+                    "\tjoin status s on s.id = m.`status`\n" +
+                    "\tjoin category ct on ct.id = r.category_id\n" +
+                    "\tjoin user_registration u on u.id=m.user_id\n" +
+                    "\twhere r.category_id=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                RequestDto requestDto= new RequestDto();
+                requestDto.setId(resultSet.getInt("reqId"));
+                requestDto.setUserId(resultSet.getInt("user_id"));
+                requestDto.setClotheName(resultSet.getString("name_of_cloth"));
+                requestDto.setClotheId(resultSet.getInt("clothe_id"));
+                requestDto.setStatus(resultSet.getString("label"));
+                requestDto.setStatusId(resultSet.getInt("status"));
+                requestDto.setCustomerName(resultSet.getString("name"));
+                requestDto.setClotheCount(resultSet.getInt("count"));
+                requestDto.setCreateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
+                requestDto.setUpdateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("updated_date")));
+                requestDto.setPickupDate(resultSet.getString("pickup_date"));
+                requestDto.setCategory(resultSet.getString("category"));
+                requestDto.setCategoryId(resultSet.getInt("category_id"));
+                request.add(requestDto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return request;
+    }
 }

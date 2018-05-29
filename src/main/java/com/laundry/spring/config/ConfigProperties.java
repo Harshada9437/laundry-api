@@ -26,7 +26,7 @@ public class ConfigProperties {
     static {
         try {
 
-            app_path = new File(System.getProperty("catalina.home") + "/laundry_webapps").getAbsolutePath();
+            app_path = new File(System.getProperty("catalina.home") + "/webapps").getAbsolutePath();
 
             Properties prop = new Properties();
             File propertyFile = new File(app_path + "/laundry.properties");

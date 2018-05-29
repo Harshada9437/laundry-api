@@ -2,6 +2,7 @@ package com.laundry.spring.dao;
 
 
 import com.laundry.spring.DTO.CustomerDTO;
+import com.laundry.spring.DTO.RequestDto;
 import com.laundry.spring.DTO.UserDto;
 import com.laundry.spring.DTO.VerifyOtpDTO;
 import com.laundry.spring.model.ChangePasswordBO;
@@ -212,6 +213,55 @@ public class UserDAO {
             }
         }
         return isProcessed;
+    }
+
+    public List<RequestDto> requestList(int id) throws SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        List<RequestDto> request = new ArrayList<RequestDto>();
+        try {
+            connection = connectionHandler.getConnection();
+            connection.setAutoCommit(false);
+
+            StringBuilder query = new StringBuilder("select m.id as reqId, m.*,r.*,u.name,s.label,ct.label as category, c.name_of_cloth from request_master m\n" +
+                    "\tjoin request_details r on m.id=r.request_id\n" +
+                    "\tleft join clothes c on c.id = r.clothe_id\n" +
+                    "\tjoin status s on s.id = m.`status`\n" +
+                    "\tjoin category ct on ct.id = r.category_id\n" +
+                    "\tjoin user_registration u on u.id=m.user_id\n" +
+                    "\twhere m.user_id=?");
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                RequestDto requestDto= new RequestDto();
+                requestDto.setId(resultSet.getInt("reqId"));
+                requestDto.setUserId(resultSet.getInt("user_id"));
+                requestDto.setClotheName(resultSet.getString("name_of_cloth"));
+                requestDto.setClotheId(resultSet.getInt("clothe_id"));
+                requestDto.setStatus(resultSet.getString("label"));
+                requestDto.setStatusId(resultSet.getInt("status"));
+                requestDto.setCustomerName(resultSet.getString("name"));
+                requestDto.setClotheCount(resultSet.getInt("count"));
+                requestDto.setCreateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("created_date")));
+                requestDto.setUpdateDate(DateUtil.getDateStringFromTimeStamp(resultSet.getTimestamp("updated_date")));
+                requestDto.setPickupDate(resultSet.getString("pickup_date"));
+                requestDto.setCategory(resultSet.getString("category"));
+                requestDto.setCategoryId(resultSet.getInt("category_id"));
+                request.add(requestDto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                statement.close();
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return request;
     }
 
     public int getCustomerId(String mobile) throws SQLException{

@@ -4,20 +4,74 @@ import java.util.List;
 
 public class RequestDto {
     private int id;
-    List<String> category;
+    private int userId;
+    private String category;
+    private int categoryId;
     private String customerName;
     private String clotheName;
+    private int clotheId;
     private int clotheCount;
     private String createDate;
     private String updateDate;
+    private String pickupDate;
+    private String remark;
     private String status;
+    private int statusId;
 
-    public List<String> getCategory() {
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getPickupDate() {
+        return pickupDate;
+    }
+
+    public void setPickupDate(String pickupDate) {
+        this.pickupDate = pickupDate;
+    }
+
+    public String getCategory() {
         return category;
     }
 
-    public void setCategory(List<String> category) {
+    public void setCategory(String category) {
         this.category = category;
+    }
+
+    public int getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public int getClotheId() {
+        return clotheId;
+    }
+
+    public void setClotheId(int clotheId) {
+        this.clotheId = clotheId;
+    }
+
+    public int getStatusId() {
+        return statusId;
+    }
+
+    public void setStatusId(int statusId) {
+        this.statusId = statusId;
     }
 
     public int getId() {
