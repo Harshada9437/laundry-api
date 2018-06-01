@@ -3,11 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script type="application/javascript">
-        window.location.href = "http://eauction.aaacpl.com/app"
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("button").click(function(){
+                var num = $("#myinput").val();
+
+                $.ajax({url: "http://localhost:8080/laundryvala-1.0.0/rest/user/list/" + num, success: function(response){
+
+                        $('#myTable').empty();
+
+                        var head = "<tr><th>name</th><th>status</th><th>name_of_cloth</th><th>no_of_cloth</th><th>created_date</th><th>req_id</th><th>user_id</th></tr>";
+                        $('#myTable').append(head);
+                        var  custresponse = response.customers;
+                        $.each(custresponse, function(i, item) {
+                            var row = $('<tr><td>' + item.name+ '</td><td>' + item.status + '</td><td>' + item.name_of_cloth + '</td><td>' + item.no_of_cloth+ '</td><td>' + item.created_date +'</td><td>' + item.req_id +'</td><td>' + item.user_id +'</td></tr>');
+                            $('#myTable').append(row);
+
+                        });
+                    }
+
+                });
+            });
+        });
+
     </script>
+    <style>
+
+        table, th,tr, td {
+            border: 1px solid black;
+        }
+
+    </style>
 </head>
 <body>
-Find page
+<h1>Search User</h1>
+<input type="text" name="name" id="myinput">
+<button>Search</button>
+<div id="resultDiv">
+    <table style="width:10%" id="myTable">
+    </table>
+</div>
 </body>
 </html>
